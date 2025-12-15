@@ -1,0 +1,13 @@
+numpy
+pandas
+scikit-learn
+tensorflow
+typing_extensions
+neuroHarmonize
+statsmodels
+nibabel
+matplotlib
+seaborn
+tensorflow
+shap
+scikit_posthocs
