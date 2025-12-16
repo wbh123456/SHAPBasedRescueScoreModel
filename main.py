@@ -8,9 +8,9 @@ dtx_file = "results/dtx_raw_results.pkl"
 
 LOAD_RESULT = temp_file
 # LOAD_RESULT = None
-NUM_REPEAT = 0
-# SAVE_LOCATION = temp_file
-SAVE_LOCATION = None
+NUM_REPEAT = 80
+SAVE_LOCATION = temp_file
+# SAVE_LOCATION = None
 
 
 def main():

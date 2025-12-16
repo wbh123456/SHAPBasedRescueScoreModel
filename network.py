@@ -1,4 +1,3 @@
-import tensorflow
 from tensorflow import keras
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout
@@ -25,19 +24,19 @@ class Network:
                 Dropout(0.2),
                 Dense(16, activation="relu", kernel_regularizer=reg),
                 Dropout(0.2),
-                Dense(2, activation=None),
+                Dense(2, activation="softmax"),
             ]
         )
 
-        adam = keras.optimizers.Adam(learning_rate=0.001)
-        loss = keras.losses.CategoricalCrossentropy(from_logits=True)
+        adam = keras.optimizers.Adam(learning_rate=0.005)
+        loss = keras.losses.CategoricalCrossentropy(from_logits=False)
 
         model.compile(
             optimizer=adam,
             loss=loss,
             metrics=[
                 keras.metrics.CategoricalAccuracy(name="accuracy"),
-                keras.metrics.AUC(name="auc", multi_label=True, from_logits=True),
+                keras.metrics.AUC(name="auc", multi_label=True, from_logits=False),
             ],
         )
         return model

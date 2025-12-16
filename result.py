@@ -63,7 +63,7 @@ class Result:
     def merge_result(self, results):
         if self.results and results:
             self.results = self.results + results
-        if results:
+        elif results:
             self.results = results
 
     def save_to_file(self, file_path):
@@ -73,7 +73,7 @@ class Result:
     def load_from_file(self, file_path):
         with open(file_path, "rb") as f:
             loaded_data = pickle.load(f)
-        self.load(loaded_data)
+            self.load(loaded_data)
 
     def analyze_results(self, normtest=False):
         print("####")
@@ -101,7 +101,6 @@ class Result:
             shap_df_list, keys=range(len(shap_df_list)), names=["run", "Parameter"]
         )
 
-        alpha = (0.05,)
         results = []
 
         rescue_list = []
@@ -312,6 +311,11 @@ class Result:
             rescue_trimmed["parameter"] != "Start Electrode"
         ]
 
+        self._visualize_mean_rescue_score(rescue_trimmed, order)
+        self._visualize_shap_shift(shift_denom)
+        # self._visualize_mean_shap_values(shift_denom)
+
+    def _visualize_mean_rescue_score(self, rescue_trimmed, order):
         palette = sns.color_palette("Spectral")
         palette_mapping = {
             "general parameter": palette[4],
@@ -345,7 +349,7 @@ class Result:
         # plt.savefig("MeanRescueScore_kv1_1_kd.pdf")
         plt.show()
 
-        ### ===Mean SHAP Shifts===
+    def _visualize_shap_shift(self, shift_denom):
         shap_df = shift_denom.reset_index().melt(
             id_vars=["parameter"],
             value_vars=["shift", "denom"],
@@ -394,7 +398,7 @@ class Result:
         # plt.savefig("MeanSHAPShift_DTX.pdf")
         plt.show()
 
-        ### ===Mean SHAP Values===
+    def _visualize_mean_shap_values(self, shift_denom):
         shap_df = shift_denom.reset_index().melt(
             id_vars=["parameter"],
             value_vars=["pten", "wt", "trt"],
