@@ -11,6 +11,7 @@ import pickle
 import io
 import pandas as pd
 
+from constants import WTFalse, PTENFalse, PTENTrue
 from utils import tmean
 
 
@@ -397,6 +398,84 @@ class Result:
         plt.tight_layout()
         # plt.savefig("MeanSHAPShift_DTX.pdf")
         plt.show()
+
+    def visualize_top_features(self, features, raw_X, raw_y):
+        group_palette = {"WT": "#4C72B0", "PTEN": "#DD8452", "Treated": "#55A868"}
+        group_order = ["WT", "PTEN", "Treated"]
+        label_to_group = {WTFalse: "WT", PTENFalse: "PTEN", PTENTrue: "Treated"}
+
+        shap_long = self._extract_shap_long(features)
+
+        raw_long = self._extract_raw_long(features, raw_X, raw_y, label_to_group)
+
+        for feature in features:
+            fig, (ax_raw, ax_shap) = plt.subplots(1, 2, figsize=(14, 5))
+            fig.suptitle(feature, fontsize=14, fontweight="bold")
+
+            feat_raw = raw_long[raw_long["feature"] == feature]
+            sns.violinplot(
+                data=feat_raw, x="group", y="value",
+                order=group_order, palette=group_palette,
+                inner=None, alpha=0.3, ax=ax_raw,
+            )
+            sns.stripplot(
+                data=feat_raw, x="group", y="value",
+                order=group_order, palette=group_palette,
+                size=3, alpha=0.5, jitter=True, ax=ax_raw,
+            )
+            ax_raw.set_title("Raw Feature Distribution")
+            ax_raw.set_xlabel("")
+            ax_raw.set_ylabel("Raw Value")
+            ax_raw.grid(axis="y", linestyle="--", alpha=0.3)
+
+            feat_shap = shap_long[shap_long["feature"] == feature]
+            sns.violinplot(
+                data=feat_shap, x="group", y="shap_value",
+                order=group_order, palette=group_palette,
+                inner=None, alpha=0.3, ax=ax_shap,
+            )
+            sns.stripplot(
+                data=feat_shap, x="group", y="shap_value",
+                order=group_order, palette=group_palette,
+                size=3, alpha=0.5, jitter=True, ax=ax_shap,
+            )
+            ax_shap.set_title("Mean SHAP Value (per fold)")
+            ax_shap.set_xlabel("")
+            ax_shap.set_ylabel("SHAP Value")
+            ax_shap.grid(axis="y", linestyle="--", alpha=0.3)
+
+            plt.tight_layout()
+            plt.show()
+
+    def _extract_shap_long(self, features):
+        rows = []
+        for runs in self.results:
+            for fold in runs:
+                df = fold["mean_shap_df"]
+                for feat in features:
+                    if feat not in df.index:
+                        continue
+                    rows.append({"feature": feat, "group": "WT",
+                                 "shap_value": df.loc[feat, "mu_WT"]})
+                    rows.append({"feature": feat, "group": "PTEN",
+                                 "shap_value": df.loc[feat, "mu_PT"]})
+                    rows.append({"feature": feat, "group": "Treated",
+                                 "shap_value": df.loc[feat, "mu_Tx"]})
+        return pd.DataFrame(rows)
+
+    @staticmethod
+    def _extract_raw_long(features, raw_X, raw_y, label_to_group):
+        rows = []
+        for label, group in label_to_group.items():
+            mask = raw_y == label
+            subset = raw_X.loc[mask]
+            for feat in features:
+                if feat not in subset.columns:
+                    continue
+                for val in subset[feat]:
+                    rows.append({"feature": feat, "group": group,
+                                 "value": val})
+        return pd.DataFrame(rows)
 
     def _visualize_mean_shap_values(self, shift_denom):
         shap_df = shift_denom.reset_index().melt(
