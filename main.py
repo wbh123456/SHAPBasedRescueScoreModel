@@ -1,3 +1,5 @@
+import os
+
 from data_loader import DataLoader
 from data_preprocessor import DataPreprocessor
 from pipeline import ModelPipeline
@@ -6,9 +8,9 @@ from result import Result
 temp_file = "results/temp_data.pkl"
 dtx_file = "results/dtx_raw_results.pkl"
 
-LOAD_RESULT = temp_file
-# LOAD_RESULT = None
-NUM_REPEAT = 80
+# LOAD_RESULT = temp_file
+LOAD_RESULT = None
+NUM_REPEAT = 20
 SAVE_LOCATION = temp_file
 # SAVE_LOCATION = None
 
@@ -30,6 +32,7 @@ def main():
         result.merge_result(results_raw)
 
     if SAVE_LOCATION:
+        os.makedirs(os.path.dirname(SAVE_LOCATION), exist_ok=True)
         result.save_to_file(SAVE_LOCATION)
 
     result.analyze_results()

@@ -5,6 +5,7 @@ from tensorflow.keras import regularizers
 from tensorflow.keras.callbacks import ModelCheckpoint, ReduceLROnPlateau
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 import pandas as pd
 
 
@@ -57,6 +58,7 @@ class Network:
 
         class_weights = self._get_class_weights(Y_train)
 
+        os.makedirs("checkpoints", exist_ok=True)
         callbacks = [
             keras.callbacks.EarlyStopping(
                 monitor="val_loss", patience=20, restore_best_weights=True

@@ -86,9 +86,9 @@ class ModelPipeline:
 
     def _get_5fold_splits(self, n_splits=5):
         seed = int(time.time_ns() & 0xFFFFFFFF)
-        random_state = random.seed(seed)
+        random.seed(seed)
         skf = StratifiedKFold(
-            n_splits=n_splits, shuffle=True, random_state=random_state
+            n_splits=n_splits, shuffle=True, random_state=seed
         )
         folds = []
         X, y = self.X_to_train, self.y_to_train
