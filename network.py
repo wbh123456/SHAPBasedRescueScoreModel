@@ -61,7 +61,7 @@ class Network:
         os.makedirs("checkpoints", exist_ok=True)
         callbacks = [
             keras.callbacks.EarlyStopping(
-                monitor="val_loss", patience=20, restore_best_weights=True
+                monitor="val_loss", patience=40, restore_best_weights=True
             ),
             ReduceLROnPlateau(
                 monitor="val_loss", factor=0.5, patience=6, verbose=0, min_lr=0.0000001

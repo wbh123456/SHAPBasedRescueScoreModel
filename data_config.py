@@ -13,4 +13,18 @@ data_config = {
             "path": "data/raw/MEA_r2_dataset_0804_per_well.csv"
         }
     ],
+    "genetic_ko": [
+        {
+            "round": 1,
+            "path": "data/raw/MEA_r1_dataset_0915_per_well_genoko_corrected.csv"
+        },
+        {
+            "round": 2,
+            "path": "data/raw/MEA_r2_dataset_0821_per_well_genoko.csv"
+        },
+        {
+            "round": 3,
+            "path": "data/raw/MEA_r3_dataset_0821_per_well_genoko.csv"
+        }
+    ]
 }
