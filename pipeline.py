@@ -41,7 +41,7 @@ class ModelPipeline:
             X_train, X_test, Y_train, Y_test = fold
 
             print("\n##### Training")
-            model = Network()
+            model = Network(n_features=X_train.shape[1])
             model.train_model(
                 X_train, Y_train, batch_size=self.batch_size, epochs=self.epochs
             )

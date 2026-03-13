@@ -10,16 +10,16 @@ import pandas as pd
 
 
 class Network:
-    def __init__(self):
-        self.model = self._initialize_model()
+    def __init__(self, n_features=21):
+        self.model = self._initialize_model(n_features)
         return
 
-    def _initialize_model(self):
+    def _initialize_model(self, n_features):
         reg = regularizers.l1_l2(l1=1e-5, l2=1e-4)
 
         model = Sequential(
             [
-                Dense(21, activation="relu", kernel_regularizer=reg, input_shape=(21,)),
+                Dense(n_features, activation="relu", kernel_regularizer=reg, input_shape=(n_features,)),
                 Dropout(0.2),
                 Dense(32, activation="relu", kernel_regularizer=reg),
                 Dropout(0.2),

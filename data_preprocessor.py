@@ -41,6 +41,15 @@ class DataPreprocessor:
             col for col in x.columns if col not in ["round", "day"]
         ]  # numerical features
 
+        # neuroHarmonize cannot handle NaN; impute with per-round median
+        for col in feature_cols:
+            if x[col].isna().any():
+                x[col] = x.groupby("round")[col].transform(
+                    lambda s: s.fillna(s.median())
+                )
+                # Fall back to global median if an entire round is NaN
+                x[col] = x[col].fillna(x[col].median())
+
         X_Feat = x[feature_cols]
 
         # Learn model and apply to the same data
