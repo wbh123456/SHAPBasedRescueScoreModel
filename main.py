@@ -23,12 +23,21 @@ FEATURES_TO_VISUALIZE = {
     ],
     "genetic_ko": [
         "Area Under Normalized Cross-Correlation",
-        "mean ISI within Network Burst - Avg (sec)",
+        "Mean ISI within Network Burst - Avg (sec)",
         "Mean ISI within Burst - Avg (sec)",
         "Full Width at Half Height of Normalized Cross-Correlation",
         "Network Burst Duration - Avg (sec)",
     ],
 }
+
+
+def get_features_to_visualize(dataset):
+    if "dtx" in dataset:
+        return FEATURES_TO_VISUALIZE["dtx"]
+    elif "genetic_ko" in dataset:
+        return FEATURES_TO_VISUALIZE["genetic_ko"]
+    else:
+        raise ValueError(f"Dataset {dataset} not found")
 
 
 def parse_args():
@@ -68,24 +77,56 @@ def parse_args():
         action="store_true",
         help="Visualize top features (bypasses training, requires --load)",
     )
-    return parser.parse_args()
+    parser.add_argument(
+        "--convergence",
+        action="store_true",
+        help="Plot rescue score and SHAP convergence vs. number of repeats (requires --load)",
+    )
+    parser.add_argument(
+        "--show_zeros_removed",
+        action="store_true",
+        help="Add a side-by-side subplot with zeros removed to feature distribution plots",
+    )
+    args = parser.parse_args()
+    if args.convergence and not args.load:
+        parser.error("--convergence requires --load to be specified")
+    if args.visualize_features and not args.dataset:
+        parser.error("--visualize_features requires --dataset to be specified")
+    if args.repeats > 0 and args.visualize_features:
+        parser.error(
+            "--repeats cannot be used together with --visualize_features"
+        )
+    return args
 
 
 def main():
     args = parse_args()
-
-    unprocessed_X, y = DataLoader(name=args.dataset).get_data(extra_days=3)
-    X = DataPreprocessor(unprocessed_X).preprocess(show_plot=False)
-    print(y.value_counts())
 
     result = Result()
 
     if args.load:
         result.load_from_file(args.load)
 
+    if args.convergence:
+        load_stem = (
+            os.path.splitext(os.path.basename(args.load))[0]
+            if args.load
+            else args.dataset
+        )
+        result.analyze_convergence(output_dir=os.path.join("convergence", load_stem))
+        return
+
+    unprocessed_X, y = DataLoader(name=args.dataset).get_data(extra_days=3)
+    X = DataPreprocessor(unprocessed_X).preprocess(show_plot=False)
+    print(y.value_counts())
+
     if args.visualize_features:
         visualize_feature_distributions(
-            FEATURES_TO_VISUALIZE[args.dataset], unprocessed_X, y
+            get_features_to_visualize(args.dataset),
+            unprocessed_X,
+            y,
+            output_dir=os.path.join("visualization", args.dataset),
+            show_zeros_removed=args.show_zeros_removed,
         )
         return
 
@@ -100,7 +141,20 @@ def main():
         os.makedirs(os.path.dirname(args.save), exist_ok=True)
         result.save_to_file(args.save)
 
-    result.analyze_results()
+        # Determine output directory for plots based on the save path
+        # e.g., results/genetic_ko_env_3_rounds.pkl -> results/genetic_ko_env_3_rounds/
+        save_name = os.path.splitext(os.path.basename(args.save))[0]
+        output_dir = os.path.join(os.path.dirname(args.save), save_name)
+    else:
+        output_dir = None
+
+    rescue_scores_summary, shift_denom = result.analyze_results(output_dir=output_dir)
+    print(rescue_scores_summary)
+
+    if args.save and args.repeats > 0:
+        save_name = os.path.splitext(os.path.basename(args.save))[0]
+        convergence_dir = os.path.join("convergence", save_name)
+        result.analyze_convergence(output_dir=convergence_dir)
 
 
 if __name__ == "__main__":

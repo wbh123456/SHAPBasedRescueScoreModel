@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 import scikit_posthocs as sp
 import matplotlib.pyplot as plt
+import os
 import pickle
 import io
 import pandas as pd
@@ -75,15 +76,160 @@ class Result:
             loaded_data = pickle.load(f)
             self.load(loaded_data)
 
-    def analyze_results(self, normtest=False):
+    def analyze_results(self, output_dir=None, normtest=False):
         print("####")
         print("#### Analyzing Result")
         print("Result size =", len(self.results))
         rescue_scores_summary, rescue_full_list, shift_denom = self._get_rescue_scores(
             self.results, normtest=normtest
         )
-        self._visualize_results(rescue_scores_summary, rescue_full_list, shift_denom)
+        self._visualize_results(rescue_scores_summary, rescue_full_list, shift_denom, output_dir)
         return rescue_scores_summary, shift_denom
+
+    def analyze_convergence(self, output_dir=None):
+        print("####")
+        print("#### Convergence Analysis")
+        print("Result size =", len(self.results))
+
+        if output_dir is not None:
+            os.makedirs(output_dir, exist_ok=True)
+
+        # --- Step A: flatten all folds into per-fold records ---
+        records = []
+        for repeat_idx, folds in enumerate(self.results):
+            for fold_idx, fold in enumerate(folds):
+                df = fold["mean_shap_df"]
+                for param in df.index:
+                    records.append(
+                        {
+                            "repeat": repeat_idx,
+                            "fold": fold_idx,
+                            "parameter": param,
+                            "mu_WT": df.loc[param, "mu_WT"],
+                            "mu_PT": df.loc[param, "mu_PT"],
+                            "mu_Tx": df.loc[param, "mu_Tx"],
+                        }
+                    )
+        flat = pd.DataFrame(records)
+
+        # Pre-compute rescue score per row, applying the per-parameter min_delta guard
+        flat["denom"] = flat["mu_WT"] - flat["mu_PT"]
+        flat["shift"] = flat["mu_Tx"] - flat["mu_PT"]
+        flat["rescue"] = np.nan
+        for param in flat["parameter"].unique():
+            mask = flat["parameter"] == param
+            d = flat.loc[mask, "denom"]
+            s = flat.loc[mask, "shift"]
+            min_delta = np.nanmedian(np.abs(d)) * 0.1
+            valid = mask & (flat["denom"].abs() >= min_delta)
+            flat.loc[valid, "rescue"] = (flat.loc[valid, "shift"] / flat.loc[valid, "denom"])
+
+        R = len(self.results)
+        params = flat["parameter"].unique()
+
+        # --- Step B: cumulative statistics per repeat prefix ---
+        rows = []
+        for k in range(1, R + 1):
+            subset = flat[flat["repeat"] < k]
+            for param, g in subset.groupby("parameter"):
+                rescue_vals = g["rescue"].dropna().to_numpy()
+                n = len(rescue_vals)
+                mean_rescue = tmean(rescue_vals) if n > 0 else np.nan
+                se_rescue = (np.nanstd(rescue_vals) / np.sqrt(n)) if n > 1 else np.nan
+                rows.append(
+                    {
+                        "k": k,
+                        "parameter": param,
+                        "mean_rescue": mean_rescue,
+                        "se_rescue": se_rescue,
+                        "mean_WT": g["mu_WT"].mean(),
+                        "se_WT": g["mu_WT"].sem(),
+                        "mean_PT": g["mu_PT"].mean(),
+                        "se_PT": g["mu_PT"].sem(),
+                        "mean_Tx": g["mu_Tx"].mean(),
+                        "se_Tx": g["mu_Tx"].sem(),
+                    }
+                )
+        conv = pd.DataFrame(rows)
+
+        # --- Step C: Plot convergence figures ---
+        self._plot_rescue_convergence(conv, params, R, output_dir)
+        self._plot_shap_convergence(conv, params, R, output_dir)
+
+    def _plot_rescue_convergence(self, conv, params, R, output_dir):
+        n_params = len(params)
+        ncols = min(3, n_params)
+        nrows = int(np.ceil(n_params / ncols))
+        fig, axes = plt.subplots(nrows, ncols, figsize=(5 * ncols, 3.5 * nrows), squeeze=False)
+
+        xs = np.arange(1, R + 1)
+        for ax_idx, param in enumerate(sorted(params)):
+            ax = axes[ax_idx // ncols][ax_idx % ncols]
+            g = conv[conv["parameter"] == param].sort_values("k")
+            y = g["mean_rescue"].to_numpy()
+            se = g["se_rescue"].to_numpy()
+            final_val = y[-1]
+
+            ax.plot(xs, y, color="#2271B5", linewidth=1.5)
+            ax.fill_between(xs, y - se, y + se, alpha=0.2, color="#2271B5")
+            ax.axhline(final_val, color="grey", linestyle="--", linewidth=0.8, alpha=0.7)
+            ax.set_title(param, fontsize=8, fontweight="bold")
+            ax.set_xlabel("Repeats", fontsize=7)
+            ax.set_ylabel("Mean Rescue Score", fontsize=7)
+            ax.tick_params(labelsize=6)
+            ax.grid(linestyle="--", alpha=0.3)
+
+        for ax_idx in range(n_params, nrows * ncols):
+            axes[ax_idx // ncols][ax_idx % ncols].set_visible(False)
+
+        fig.suptitle("Rescue Score Convergence vs. Number of Repeats", fontsize=11, fontweight="bold")
+        plt.tight_layout()
+
+        if output_dir is not None:
+            fig.savefig(os.path.join(output_dir, "rescue_score_convergence.pdf"))
+            plt.close(fig)
+        else:
+            plt.show()
+
+    def _plot_shap_convergence(self, conv, params, R, output_dir):
+        shap_palette = {"WT": "#4C72B0", "PTEN": "#DD8452", "Treated": "#55A868"}
+        shap_cols = {"WT": ("mean_WT", "se_WT"), "PTEN": ("mean_PT", "se_PT"), "Treated": ("mean_Tx", "se_Tx")}
+
+        n_params = len(params)
+        ncols = min(3, n_params)
+        nrows = int(np.ceil(n_params / ncols))
+        fig, axes = plt.subplots(nrows, ncols, figsize=(5 * ncols, 3.5 * nrows), squeeze=False)
+
+        xs = np.arange(1, R + 1)
+        for ax_idx, param in enumerate(sorted(params)):
+            ax = axes[ax_idx // ncols][ax_idx % ncols]
+            g = conv[conv["parameter"] == param].sort_values("k")
+
+            for grp, (mean_col, se_col) in shap_cols.items():
+                y = g[mean_col].to_numpy()
+                se = g[se_col].to_numpy()
+                color = shap_palette[grp]
+                ax.plot(xs, y, color=color, linewidth=1.5, label=grp)
+                ax.fill_between(xs, y - se, y + se, alpha=0.2, color=color)
+
+            ax.set_title(param, fontsize=8, fontweight="bold")
+            ax.set_xlabel("Repeats", fontsize=7)
+            ax.set_ylabel("Mean SHAP Value", fontsize=7)
+            ax.tick_params(labelsize=6)
+            ax.grid(linestyle="--", alpha=0.3)
+            ax.legend(fontsize=6, loc="best")
+
+        for ax_idx in range(n_params, nrows * ncols):
+            axes[ax_idx // ncols][ax_idx % ncols].set_visible(False)
+
+        fig.suptitle("Mean SHAP Value Convergence vs. Number of Repeats", fontsize=11, fontweight="bold")
+        plt.tight_layout()
+
+        if output_dir is not None:
+            fig.savefig(os.path.join(output_dir, "shap_convergence.pdf"))
+            plt.close(fig)
+        else:
+            plt.show()
 
     def _get_rescue_scores(self, all_results, normtest=False):
         shap_df_list = []
@@ -259,27 +405,32 @@ class Result:
 
         return rescue_scores_summary, rescue_scores, shift_denom
 
-    def _trim_scores(self, rescue_full_list):
-        # Function to trim 10% at both ends
-        def trim_series(s, proportion=0.1):
-            q_low = s.quantile(proportion)
-            q_high = s.quantile(1 - proportion)
-            return s[(s >= q_low) & (s <= q_high)]
+    def _rescue_to_long(self, rescue_full_list, trim=0.1):
+        """Convert wide rescue scores to long-form DataFrame.
 
-        # Apply trimming to each parameter (row), collect in long-form list
-        trimmed_list = []
+        Applies the same count-based trim as tmean so that
+        downstream np.mean on this data equals tmean on the
+        raw data.
+        """
+        long_list = []
         for param in rescue_full_list.index:
-            trimmed = trim_series(rescue_full_list.loc[param])
-            trimmed_list.append(
-                pd.DataFrame({"parameter": param, "rescue_score": trimmed.values})
+            vals = np.sort(
+                rescue_full_list.loc[param].dropna().values
             )
+            n = len(vals)
+            cut = int(n * trim)
+            if cut > 0:
+                vals = vals[cut:-cut]
+            long_list.append(
+                pd.DataFrame({
+                    "parameter": param,
+                    "rescue_score": vals,
+                })
+            )
+        return pd.concat(long_list, ignore_index=True)
 
-        # Concatenate all trimmed results into a long-form DataFrame
-        df_trimmed = pd.concat(trimmed_list, ignore_index=True)
-        return df_trimmed
-
-    def _visualize_results(self, resuce_scores, rescue_full_list, shift_denom):
-        rescue_trimmed = self._trim_scores(rescue_full_list)
+    def _visualize_results(self, resuce_scores, rescue_full_list, shift_denom, output_dir=None):
+        rescue_long = self._rescue_to_long(rescue_full_list)
 
         df = resuce_scores.copy()
         p_thresh = 0.05
@@ -288,7 +439,9 @@ class Result:
         plot_df["param"] = plot_df.index.astype(str)
 
         # Sort and filter
-        sorted_df = plot_df.sort_values("MeanRescue", ascending=False).copy()
+        sorted_df = plot_df.sort_values(
+            "MeanRescue", ascending=False
+        ).copy()
         sorted_df = sorted_df[
             (sorted_df["kruskal_p"] < p_thresh)
             & (sorted_df["p_value_wilcoxon"] < p_thresh)
@@ -303,19 +456,31 @@ class Result:
         order = sorted_df.index
         order = order.drop("Start Electrode", errors="ignore")
 
-        rescue_trimmed = rescue_trimmed[rescue_trimmed["parameter"].isin(order)]
-        rescue_trimmed = rescue_trimmed.merge(PARAMETER_CATEGORY, on="parameter")
-
-        #!!! Remove Start Electrode in the graph
-        rescue_trimmed = rescue_trimmed[
-            rescue_trimmed["parameter"] != "Start Electrode"
+        rescue_long = rescue_long[
+            rescue_long["parameter"].isin(order)
+        ]
+        rescue_long = rescue_long.merge(
+            PARAMETER_CATEGORY, on="parameter"
+        )
+        rescue_long = rescue_long[
+            rescue_long["parameter"] != "Start Electrode"
         ]
 
-        self._visualize_mean_rescue_score(rescue_trimmed, order)
-        self._visualize_shap_shift(shift_denom)
+        # Data is already count-trimmed, so np.mean = tmean
+        param_means = (
+            rescue_long.groupby("parameter")["rescue_score"]
+            .mean()
+            .sort_values(ascending=False)
+        )
+        order = param_means.index
+
+        self._visualize_mean_rescue_score(
+            rescue_long, order, output_dir
+        )
+        self._visualize_shap_shift(shift_denom, output_dir)
         # self._visualize_mean_shap_values(shift_denom)
 
-    def _visualize_mean_rescue_score(self, rescue_trimmed, order):
+    def _visualize_mean_rescue_score(self, rescue_long, order, output_dir=None):
         palette = sns.color_palette("Spectral")
         palette_mapping = {
             "general parameter": palette[4],
@@ -325,14 +490,14 @@ class Result:
         }
 
         sns.barplot(
-            data=rescue_trimmed,
+            data=rescue_long,
             x="rescue_score",
             y="parameter",
             order=order,
             palette=palette_mapping,
             hue="category",
             legend=True,
-            estimator=tmean,
+            estimator=np.mean,
             errorbar="se",
             err_kws={"color": "grey", "linewidth": 2.5},
         )
@@ -346,10 +511,13 @@ class Result:
         plt.grid(axis="y", linestyle="--", alpha=0.3)
         plt.legend(loc="lower right")
         plt.tight_layout()
-        # plt.savefig("MeanRescueScore_kv1_1_kd.pdf")
+        
+        if output_dir:
+            os.makedirs(output_dir, exist_ok=True)
+            plt.savefig(os.path.join(output_dir, "MeanRescueScore.pdf"))
         plt.show()
 
-    def _visualize_shap_shift(self, shift_denom):
+    def _visualize_shap_shift(self, shift_denom, output_dir=None):
         shap_df = shift_denom.reset_index().melt(
             id_vars=["parameter"],
             value_vars=["shift", "denom"],
@@ -392,10 +560,13 @@ class Result:
         plt.grid(axis="x", which="major", linestyle="-", alpha=0.8, visible=True)
         plt.grid(axis="x", which="minor", linestyle="--", alpha=0.1, visible=True)
         plt.grid(axis="y", linestyle="--", alpha=0.3)
-        plt.xlim(-0.5, 0.5)
+        plt.xlim(-0.1, 0.2)
         plt.legend(loc="upper right", labels=["Treatment Shift", "Genotype Shift"])
         plt.tight_layout()
-        # plt.savefig("MeanSHAPShift_DTX.pdf")
+        
+        if output_dir:
+            os.makedirs(output_dir, exist_ok=True)
+            plt.savefig(os.path.join(output_dir, "MeanSHAPShift.pdf"))
         plt.show()
 
     def _extract_shap_long(self, features):

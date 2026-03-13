@@ -7,3 +7,7 @@ __pycache__/
 checkpoints/
 data/
 results/
+visualization/
+visualization_normalized/
+convergence/
+scripts/
