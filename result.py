@@ -14,6 +14,30 @@ import pandas as pd
 
 from utils import tmean
 
+# ── Plot configuration ──────────────────────────────────────────
+PLOT_TITLE_FONTSIZE = 18
+PLOT_SUPTITLE_FONTSIZE = 15
+PLOT_AXIS_LABEL_FONTSIZE = 13
+PLOT_TICK_FONTSIZE = 13
+PLOT_LEGEND_FONTSIZE = 10
+PLOT_SUBPLOT_TITLE_FONTSIZE = 8
+PLOT_SUBPLOT_AXIS_FONTSIZE = 7
+PLOT_SUBPLOT_TICK_FONTSIZE = 6
+
+RESCUE_SCORE_FIGSIZE = (12, 4)
+SHAP_SHIFT_FIGSIZE = (12, 6)
+
+DATASET_DISPLAY_NAMES = {
+    "dtx": "DTX",
+    "genetic_ko": "Geno KO",
+    "genetic_ko_new": "Geno KO",
+}
+
+PARAMETER_DISPLAY_NAMES = {
+    "Full Width at Half Height of Normalized Cross-Correlation":
+        "FWHH of Normalized Cross-Correlation",
+}
+
 
 PARAMETER_CATEGORY = pd.read_csv(
     io.StringIO(
@@ -76,14 +100,25 @@ class Result:
             loaded_data = pickle.load(f)
             self.load(loaded_data)
 
-    def analyze_results(self, output_dir=None, normtest=False):
+    def get_dunn_stats(self):
+        """Return per-feature Dunn test p-values: {feature: {'WT-PT': p, 'PT-PTx': p}}."""
+        rescue_scores_summary, _, _ = self._get_rescue_scores(self.results)
+        return {
+            param: {
+                "WT-PT": rescue_scores_summary.loc[param, "WT-PT Dunn"],
+                "PT-PTx": rescue_scores_summary.loc[param, "PT-PTx Dunn"],
+            }
+            for param in rescue_scores_summary.index
+        }
+
+    def analyze_results(self, output_dir=None, normtest=False, dataset=None):
         print("####")
         print("#### Analyzing Result")
         print("Result size =", len(self.results))
         rescue_scores_summary, rescue_full_list, shift_denom = self._get_rescue_scores(
             self.results, normtest=normtest
         )
-        self._visualize_results(rescue_scores_summary, rescue_full_list, shift_denom, output_dir)
+        self._visualize_results(rescue_scores_summary, rescue_full_list, shift_denom, output_dir, dataset=dataset)
         return rescue_scores_summary, shift_denom
 
     def analyze_convergence(self, output_dir=None):
@@ -173,16 +208,16 @@ class Result:
             ax.plot(xs, y, color="#2271B5", linewidth=1.5)
             ax.fill_between(xs, y - se, y + se, alpha=0.2, color="#2271B5")
             ax.axhline(final_val, color="grey", linestyle="--", linewidth=0.8, alpha=0.7)
-            ax.set_title(param, fontsize=8, fontweight="bold")
-            ax.set_xlabel("Repeats", fontsize=7)
-            ax.set_ylabel("Mean Rescue Score", fontsize=7)
-            ax.tick_params(labelsize=6)
+            ax.set_title(param, fontsize=PLOT_SUBPLOT_TITLE_FONTSIZE, fontweight="bold")
+            ax.set_xlabel("Repeats", fontsize=PLOT_SUBPLOT_AXIS_FONTSIZE)
+            ax.set_ylabel("Mean Rescue Score", fontsize=PLOT_SUBPLOT_AXIS_FONTSIZE)
+            ax.tick_params(labelsize=PLOT_SUBPLOT_TICK_FONTSIZE)
             ax.grid(linestyle="--", alpha=0.3)
 
         for ax_idx in range(n_params, nrows * ncols):
             axes[ax_idx // ncols][ax_idx % ncols].set_visible(False)
 
-        fig.suptitle("Rescue Score Convergence vs. Number of Repeats", fontsize=11, fontweight="bold")
+        fig.suptitle("Rescue Score Convergence vs. Number of Repeats", fontsize=PLOT_SUPTITLE_FONTSIZE, fontweight="bold")
         plt.tight_layout()
 
         if output_dir is not None:
@@ -212,17 +247,17 @@ class Result:
                 ax.plot(xs, y, color=color, linewidth=1.5, label=grp)
                 ax.fill_between(xs, y - se, y + se, alpha=0.2, color=color)
 
-            ax.set_title(param, fontsize=8, fontweight="bold")
-            ax.set_xlabel("Repeats", fontsize=7)
-            ax.set_ylabel("Mean SHAP Value", fontsize=7)
-            ax.tick_params(labelsize=6)
+            ax.set_title(param, fontsize=PLOT_SUBPLOT_TITLE_FONTSIZE, fontweight="bold")
+            ax.set_xlabel("Repeats", fontsize=PLOT_SUBPLOT_AXIS_FONTSIZE)
+            ax.set_ylabel("Mean SHAP Value", fontsize=PLOT_SUBPLOT_AXIS_FONTSIZE)
+            ax.tick_params(labelsize=PLOT_SUBPLOT_TICK_FONTSIZE)
             ax.grid(linestyle="--", alpha=0.3)
-            ax.legend(fontsize=6, loc="best")
+            ax.legend(fontsize=PLOT_SUBPLOT_TICK_FONTSIZE, loc="best")
 
         for ax_idx in range(n_params, nrows * ncols):
             axes[ax_idx // ncols][ax_idx % ncols].set_visible(False)
 
-        fig.suptitle("Mean SHAP Value Convergence vs. Number of Repeats", fontsize=11, fontweight="bold")
+        fig.suptitle("Mean SHAP Value Convergence vs. Number of Repeats", fontsize=PLOT_SUPTITLE_FONTSIZE, fontweight="bold")
         plt.tight_layout()
 
         if output_dir is not None:
@@ -429,7 +464,7 @@ class Result:
             )
         return pd.concat(long_list, ignore_index=True)
 
-    def _visualize_results(self, resuce_scores, rescue_full_list, shift_denom, output_dir=None):
+    def _visualize_results(self, resuce_scores, rescue_full_list, shift_denom, output_dir=None, dataset=None):
         rescue_long = self._rescue_to_long(rescue_full_list)
 
         df = resuce_scores.copy()
@@ -451,7 +486,7 @@ class Result:
         sorted_df = sorted_df[(sorted_df["MeanRescue"] > 0)]
 
         ### ===Rescue Plot===
-        plt.figure(figsize=(12, 4))
+        plt.figure(figsize=RESCUE_SCORE_FIGSIZE)
 
         order = sorted_df.index
         order = order.drop("Start Electrode", errors="ignore")
@@ -466,6 +501,13 @@ class Result:
             rescue_long["parameter"] != "Start Electrode"
         ]
 
+        rescue_long["parameter"] = rescue_long["parameter"].replace(
+            PARAMETER_DISPLAY_NAMES
+        )
+        shift_denom["parameter"] = shift_denom["parameter"].replace(
+            PARAMETER_DISPLAY_NAMES
+        )
+
         # Data is already count-trimmed, so np.mean = tmean
         param_means = (
             rescue_long.groupby("parameter")["rescue_score"]
@@ -475,12 +517,12 @@ class Result:
         order = param_means.index
 
         self._visualize_mean_rescue_score(
-            rescue_long, order, output_dir
+            rescue_long, order, output_dir, dataset=dataset
         )
         self._visualize_shap_shift(shift_denom, output_dir)
         # self._visualize_mean_shap_values(shift_denom)
 
-    def _visualize_mean_rescue_score(self, rescue_long, order, output_dir=None):
+    def _visualize_mean_rescue_score(self, rescue_long, order, output_dir=None, dataset=None):
         palette = sns.color_palette("Spectral")
         palette_mapping = {
             "general parameter": palette[4],
@@ -502,14 +544,18 @@ class Result:
             err_kws={"color": "grey", "linewidth": 2.5},
         )
 
-        plt.title("Mean Rescue Score")
-        plt.xlabel("Rescue Score")
-        plt.ylabel("")
+        title = "Mean Rescue Score"
+        if dataset and dataset in DATASET_DISPLAY_NAMES:
+            title += f" ({DATASET_DISPLAY_NAMES[dataset]})"
+        plt.title(title, fontsize=PLOT_TITLE_FONTSIZE)
+        plt.xlabel("Rescue Score", fontsize=PLOT_AXIS_LABEL_FONTSIZE)
+        plt.ylabel("", fontsize=PLOT_AXIS_LABEL_FONTSIZE)
+        plt.tick_params(labelsize=PLOT_TICK_FONTSIZE)
         plt.xlim(0, 1)
         plt.grid(axis="x", which="major", linestyle="-", alpha=0.8, visible=True)
         plt.grid(axis="x", which="minor", linestyle="--", alpha=0.1, visible=True)
         plt.grid(axis="y", linestyle="--", alpha=0.3)
-        plt.legend(loc="lower right")
+        plt.legend(loc="lower right", fontsize=PLOT_LEGEND_FONTSIZE)
         plt.tight_layout()
         
         if output_dir:
@@ -522,7 +568,7 @@ class Result:
             id_vars=["parameter"],
             value_vars=["shift", "denom"],
         )
-        plt.figure(figsize=(12, 6))
+        plt.figure(figsize=SHAP_SHIFT_FIGSIZE)
         sns.stripplot(
             data=shap_df,
             x="value",
@@ -554,14 +600,15 @@ class Result:
             estimator=tmean,
         )
 
-        plt.title("Mean SHAP Shifts")
-        plt.xlabel("SHAP Difference")
-        plt.ylabel("")
+        plt.title("Mean SHAP Shifts", fontsize=PLOT_TITLE_FONTSIZE)
+        plt.xlabel("SHAP Difference", fontsize=PLOT_AXIS_LABEL_FONTSIZE)
+        plt.ylabel("", fontsize=PLOT_AXIS_LABEL_FONTSIZE)
+        plt.tick_params(labelsize=PLOT_TICK_FONTSIZE)
         plt.grid(axis="x", which="major", linestyle="-", alpha=0.8, visible=True)
         plt.grid(axis="x", which="minor", linestyle="--", alpha=0.1, visible=True)
         plt.grid(axis="y", linestyle="--", alpha=0.3)
         plt.xlim(-0.1, 0.2)
-        plt.legend(loc="upper right", labels=["Treatment Shift", "Genotype Shift"])
+        plt.legend(loc="upper right", labels=["Treatment Shift", "Genotype Shift"], fontsize=PLOT_LEGEND_FONTSIZE)
         plt.tight_layout()
         
         if output_dir:

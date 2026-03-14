@@ -22,11 +22,11 @@ FEATURES_TO_VISUALIZE = {
         "Network Burst Duration - Avg (sec)",
     ],
     "genetic_ko": [
+        "Number of Spikes per Network Burst - Avg",
         "Area Under Normalized Cross-Correlation",
-        "Mean ISI within Network Burst - Avg (sec)",
-        "Mean ISI within Burst - Avg (sec)",
-        "Full Width at Half Height of Normalized Cross-Correlation",
         "Network Burst Duration - Avg (sec)",
+        "Burst Peak (Max Spikes per sec)",
+        "Burst Duration - Avg (sec)",
     ],
 }
 
@@ -121,12 +121,17 @@ def main():
     print(y.value_counts())
 
     if args.visualize_features:
+        dunn_stats = None
+        if args.load and result.results:
+            dunn_stats = result.get_dunn_stats()
+
         visualize_feature_distributions(
             get_features_to_visualize(args.dataset),
             unprocessed_X,
             y,
             output_dir=os.path.join("visualization", args.dataset),
             show_zeros_removed=args.show_zeros_removed,
+            dunn_stats=dunn_stats,
         )
         return
 
@@ -148,7 +153,9 @@ def main():
     else:
         output_dir = None
 
-    rescue_scores_summary, shift_denom = result.analyze_results(output_dir=output_dir)
+    rescue_scores_summary, shift_denom = result.analyze_results(
+        output_dir=output_dir, dataset=args.dataset
+    )
     print(rescue_scores_summary)
 
     if args.save and args.repeats > 0:

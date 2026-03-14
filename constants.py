@@ -59,6 +59,7 @@ high_vif_feat = [
     "Median/Mean ISI within Burst - Avg",
     "Median/Mean ISI within Network Burst - Avg",
     "Full Width at Half Height of Cross-Correlation",
-    
-    "Network Burst Percentage",
+
+    # "Network Burst Percentage",
+    # "Burst Duration - Avg (sec)"
 ]

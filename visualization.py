@@ -13,6 +13,64 @@ GROUP_PALETTE = {"WT": "#4C72B0", "PTEN": "#DD8452", "Treated": "#55A868"}
 GROUP_ORDER = ["WT", "PTEN", "Treated"]
 LABEL_TO_GROUP = {WTFalse: "WT", PTENFalse: "PTEN", PTENTrue: "Treated"}
 
+# ── Plot configuration ──────────────────────────────────────────
+VIS_SUPTITLE_FONTSIZE = 15
+VIS_TITLE_FONTSIZE = 18
+VIS_AXIS_LABEL_FONTSIZE = 15
+VIS_TICK_FONTSIZE = 13
+VIS_LEGEND_FONTSIZE = 14
+VIS_STAT_TEXT_FONTSIZE = 11
+VIS_BRACKET_FONTSIZE = 12
+
+
+def _p_to_stars(p):
+    if p <= 0.0001:
+        return "****"
+    if p <= 0.001:
+        return "***"
+    if p <= 0.01:
+        return "**"
+    if p <= 0.05:
+        return "*"
+    return "NS"
+
+
+def _draw_significance_bracket(ax, x1, x2, y_frac, text, color="black",
+                               narrow_thresh=100):
+    """Draw a bracket anchored on two x-positions (data coords) at y_frac (axes coords).
+
+    If the bracket spans more than *narrow_thresh* of the axis width, the
+    text is centered on the bracket; otherwise it is placed to the right.
+    """
+    left, right = min(x1, x2), max(x1, x2)
+    xlim = ax.get_xlim()
+    span_frac = (right - left) / (xlim[1] - xlim[0])
+
+    trans = ax.get_xaxis_transform()
+    bracket_drop = 0.02
+    ax.plot(
+        [left, left, right, right],
+        [y_frac - bracket_drop, y_frac, y_frac, y_frac - bracket_drop],
+        transform=trans,
+        color=color,
+        linewidth=1.2,
+    )
+
+    if span_frac >= narrow_thresh:
+        tx, ha, label = (left + right) / 2, "center", text
+    else:
+        tx, ha, label = right, "left", f" {text}"
+
+    ax.text(
+        tx, y_frac + 0.01, label,
+        transform=trans,
+        ha=ha,
+        va="bottom",
+        fontsize=VIS_BRACKET_FONTSIZE,
+        fontweight="bold",
+        color=color,
+    )
+
 
 def _extract_raw_long(features, raw_X, raw_y, label_to_group):
     rows = []
@@ -27,16 +85,16 @@ def _extract_raw_long(features, raw_X, raw_y, label_to_group):
     return pd.DataFrame(rows)
 
 
-def _draw_kde_panel(ax, feat_df, title, drop_zeros=False):
+def _draw_kde_panel(ax, feat_df, title, drop_zeros=False, dunn_stats=None):
     """Draw a KDE distribution panel onto ax. Optionally removes zero values."""
     stat_lines = [
-        f"{'':>8} {'N':>5} {'Zeros':>6} {'Mean':>9} {'Med':>9} {'Std':>9} {'Skew':>7}"
+        f"{'':>8} {'Mean':>9} {'Med':>9} {'Std':>9} {'Skew':>7}"
     ]
+
+    group_means = {}
 
     for grp in GROUP_ORDER:
         grp_data = feat_df[feat_df["group"] == grp]["value"].dropna()
-        n_total = len(grp_data)
-        zeros = int((grp_data == 0).sum())
 
         if drop_zeros:
             grp_data = grp_data[grp_data != 0]
@@ -63,12 +121,12 @@ def _draw_kde_panel(ax, feat_df, title, drop_zeros=False):
         )
 
         m = grp_data.mean()
+        group_means[grp] = m
         med = grp_data.median()
         sd = grp_data.std()
         sk = stats.skew(grp_data) if n >= 3 else np.nan
         stat_lines.append(
-            f"{grp:>8} {n_total:5d} {zeros:6d} {m:9.3f} {med:9.3f}"
-            f" {sd:9.3f} {sk:7.2f}"
+            f"{grp:>8} {m:9.3f} {med:9.3f} {sd:9.3f} {sk:7.2f}"
         )
 
     stat_text = "\n".join(stat_lines)
@@ -77,7 +135,7 @@ def _draw_kde_panel(ax, feat_df, title, drop_zeros=False):
         0.97,
         stat_text,
         transform=ax.transAxes,
-        fontsize=8,
+        fontsize=VIS_STAT_TEXT_FONTSIZE,
         fontfamily="monospace",
         verticalalignment="top",
         horizontalalignment="right",
@@ -89,15 +147,31 @@ def _draw_kde_panel(ax, feat_df, title, drop_zeros=False):
         ),
     )
 
-    ax.set_title(title, fontsize=11, fontweight="bold")
-    ax.set_xlabel("Raw Value")
-    ax.set_ylabel("Density")
-    ax.legend(loc="upper left")
+    if dunn_stats is not None:
+        if "WT" in group_means and "PTEN" in group_means:
+            _draw_significance_bracket(
+                ax, group_means["WT"], group_means["PTEN"],
+                0.6, _p_to_stars(dunn_stats["WT-PT"]),
+                color=GROUP_PALETTE["WT"],
+            )
+        if "PTEN" in group_means and "Treated" in group_means:
+            _draw_significance_bracket(
+                ax, group_means["PTEN"], group_means["Treated"],
+                0.4, _p_to_stars(dunn_stats["PT-PTx"]),
+                color=GROUP_PALETTE["Treated"],
+            )
+
+    ax.set_title(title, fontsize=VIS_TITLE_FONTSIZE, fontweight="bold")
+    ax.set_xlabel("Raw Value", fontsize=VIS_AXIS_LABEL_FONTSIZE)
+    ax.set_ylabel("Density", fontsize=VIS_AXIS_LABEL_FONTSIZE)
+    ax.tick_params(labelsize=VIS_TICK_FONTSIZE)
+    ax.legend(loc="upper left", fontsize=VIS_LEGEND_FONTSIZE)
     ax.grid(axis="both", linestyle="--", alpha=0.3)
 
 
 def visualize_feature_distributions(
-    features, raw_X, raw_y, output_dir=None, show_zeros_removed=False
+    features, raw_X, raw_y, output_dir=None, show_zeros_removed=False,
+    dunn_stats=None,
 ):
     if output_dir is not None:
         os.makedirs(output_dir, exist_ok=True)
@@ -109,14 +183,16 @@ def visualize_feature_distributions(
         if feat_df.empty:
             continue
 
+        feat_dunn = dunn_stats.get(feature) if dunn_stats else None
+
         if show_zeros_removed:
             fig, (ax_left, ax_right) = plt.subplots(1, 2, figsize=(18, 5))
-            fig.suptitle(feature, fontsize=13, fontweight="bold")
-            _draw_kde_panel(ax_left, feat_df, title="All Data")
-            _draw_kde_panel(ax_right, feat_df, title="Zeros Removed", drop_zeros=True)
+            fig.suptitle(feature, fontsize=VIS_SUPTITLE_FONTSIZE, fontweight="bold")
+            _draw_kde_panel(ax_left, feat_df, title="All Data", dunn_stats=feat_dunn)
+            _draw_kde_panel(ax_right, feat_df, title="Zeros Removed", drop_zeros=True, dunn_stats=feat_dunn)
         else:
             fig, ax = plt.subplots(figsize=(10, 5))
-            _draw_kde_panel(ax, feat_df, title=feature)
+            _draw_kde_panel(ax, feat_df, title=feature, dunn_stats=feat_dunn)
 
         plt.tight_layout()
 
