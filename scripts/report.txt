@@ -1,0 +1,191 @@
+======================================================================
+DATASET SOURCE ANALYSIS
+Mystery file: data/raw/network burst duration all rounds.csv
+======================================================================
+
+Building source_data NBD value index...
+Indexed 80 source folders
+======================================================================
+RAW FILE -> SOURCE DATA MAPPING
+(by value-matching NBD values, >=10.0% threshold)
+======================================================================
+
+  MEA_r1_dataset_0915_per_well_genoko_corrected.csv (417 values, 100.0% total coverage)
+    291/417 (69.8%) -> Genetic KD data/r1/p2_excel only
+    77/417 (18.5%) -> Genetic KD data/r1/p3_excel only
+    68/417 (16.3%) -> Genetic KD data/r1/p1_excel only
+
+  MEA_r2_dataset_0821_per_well_genoko.csv (602 values, 100.0% total coverage)
+    349/602 (58.0%) -> Genetic KD data/r3/WT envelope
+    271/602 (45.0%) -> Genetic KD data/r3/PTEN envelope
+
+  MEA_r3_dataset_0821_per_well_genoko.csv (483 values, 100.0% total coverage)
+    290/483 (60.0%) -> Genetic KD data/r2/Envelop network PTEN
+    197/483 (40.8%) -> Genetic KD data/r2/WT Envelope
+
+  R2_GENO_KD_ISIthreshold.csv (393 values, 100.0% total coverage)
+    232/393 (59.0%) -> Genetic KD data/r2 and r3 ISI threshold/r2/ISI threshold network PTEN
+    167/393 (42.5%) -> Genetic KD data/r2 and r3 ISI threshold/r2/WT ISI threshold
+
+  R3_GENO_KD_ISIthreshold.csv (552 values, 100.0% total coverage)
+    313/552 (56.7%) -> Genetic KD data/r2 and r3 ISI threshold/r3/WT
+    261/552 (47.3%) -> Genetic KD data/r2 and r3 ISI threshold/r3/PTEN
+
+  MEA_r2_dataset_0804_per_well.csv (337 values, 100.0% total coverage)
+    182/337 (54.0%) -> 20241030MEA/round 2/spikes50/plate2
+    161/337 (47.8%) -> 20241030MEA/round 2/spikes50/plateD
+    64/337 (19.0%) -> 20240904/plate2
+    64/337 (19.0%) -> 20240806/plate2
+    53/337 (15.7%) -> 20241030MEA/round 2/spikes150/plateD
+    53/337 (15.7%) -> 20241030MEA/round 2/spikes75/plateD
+    53/337 (15.7%) -> 20241030MEA/round 2/spikes20/plateD
+    53/337 (15.7%) -> 20241030MEA/round 2/spikes100/plateD
+    47/337 (13.9%) -> 20241030MEA/round 2/spikes150/plate2
+    47/337 (13.9%) -> 20241030MEA/round 2/spikes75/plate2
+    47/337 (13.9%) -> 20241030MEA/round 2/spikes20/plate2
+    47/337 (13.9%) -> 20241030MEA/round 2/spikes100/plate2
+    40/337 (11.9%) -> 20240904/plateD
+    40/337 (11.9%) -> 20240806/plateD
+
+  MEA_r3_dataset_0804_per_well.csv (611 values, 100.0% total coverage)
+    388/611 (63.5%) -> 20241030MEA/round 3/spikes50/plate_PTEN_correct
+    248/611 (40.6%) -> 20241030MEA/round 3/network500/plate_PTEN_correct
+    248/611 (40.6%) -> 20241030MEA/round 3/network500_spike50/plate_PTEN_correct
+    236/611 (38.6%) -> 20241030MEA/round 3/spikes50/plate_WT
+    166/611 (27.2%) -> 20241030MEA/round 3/spikes150/plate_PTEN_correct
+    166/611 (27.2%) -> 20241030MEA/round 3/spikes75/plate_PTEN_correct
+    166/611 (27.2%) -> 20241030MEA/round 3/spikes20/plate_PTEN_correct
+    166/611 (27.2%) -> 20241030MEA/round 3/spikes100/plate_PTEN_correct
+    135/611 (22.1%) -> 20241030MEA/round 3/network500/plate_WT
+    135/611 (22.1%) -> 20241030MEA/round 3/network500_spike50/plate_WT
+    95/611 (15.5%) -> 20241003_indu/plate_PTEN_correct
+    82/611 (13.4%) -> 20241030MEA/round 3/late days network #spikes500/platePTEN_latedays_#spikes500
+    74/611 (12.1%) -> 20241030MEA/round 3/late days network #spikes500/plateWT_latedays_#spikes500
+    63/611 (10.3%) -> 20241030MEA/round 3/spikes150/plate_WT
+    63/611 (10.3%) -> 20241030MEA/round 3/spikes75/plate_WT
+    63/611 (10.3%) -> 20241030MEA/round 3/spikes20/plate_WT
+    63/611 (10.3%) -> 20241030MEA/round 3/spikes100/plate_WT
+
+  MEA_r4_dataset_0804_per_well.csv (259 values, 100.0% total coverage)
+    180/259 (69.5%) -> 20241030MEA/round4/PTEN KO
+    81/259 (31.3%) -> 20241030MEA/round4/WT
+
+======================================================================
+MYSTERY CSV -> RAW FILE MATCHING
+======================================================================
+
+Extracted 1010 non-zero values
+Groups: ['PTEN + sc', 'PTEN KO + KCNA1_386', 'WT + sc', 'WT + KCNA1_386']
+Timepoints: ['d11', 'd12', 'd13', 'd14', 'd15', 'd16', 'd17', 'd18', 'd19', 'd20', 'd21', 'd22', 'd23', 'd24']
+  MEA_r1_dataset_0915_per_well_genoko_corrected.csv: 417 non-zero NBD
+  MEA_r2_dataset_0821_per_well_genoko.csv: 602 non-zero NBD
+  MEA_r3_dataset_0821_per_well_genoko.csv: 483 non-zero NBD
+  R2_GENO_KD_ISIthreshold.csv: 393 non-zero NBD
+  R3_GENO_KD_ISIthreshold.csv: 552 non-zero NBD
+  MEA_r2_dataset_0804_per_well.csv: 337 non-zero NBD
+  MEA_r3_dataset_0804_per_well.csv: 611 non-zero NBD
+  MEA_r4_dataset_0804_per_well.csv: 259 non-zero NBD
+
+Saved raw->source map   -> data/analysis_results/raw_to_source.csv
+Saved per-value matches -> data/analysis_results/per_value_matches.csv
+Saved unmatched values  -> data/analysis_results/unmatched.csv
+Saved summary           -> data/analysis_results/summary.csv
+
+--- Overall match counts per raw file ---
+
+  MEA_r1_dataset_0915_per_well_genoko_corrected.csv
+    matched: 263 mystery CSV values
+    source:  Genetic KD data/r1/p2_excel only (69.8%); Genetic KD data/r1/p3_excel only (18.5%); Genetic KD data/r1/p1_excel only (16.3%)
+
+  MEA_r2_dataset_0821_per_well_genoko.csv
+    matched: 432 mystery CSV values
+    source:  Genetic KD data/r3/WT envelope (58.0%); Genetic KD data/r3/PTEN envelope (45.0%)
+
+  MEA_r3_dataset_0821_per_well_genoko.csv
+    matched: 45 mystery CSV values
+    source:  Genetic KD data/r2/Envelop network PTEN (60.0%); Genetic KD data/r2/WT Envelope (40.8%)
+
+  R2_GENO_KD_ISIthreshold.csv
+    matched: 365 mystery CSV values
+    source:  Genetic KD data/r2 and r3 ISI threshold/r2/ISI threshold network PTEN (59.0%); Genetic KD data/r2 and r3 ISI threshold/r2/WT ISI threshold (42.5%)
+
+  R3_GENO_KD_ISIthreshold.csv
+    matched: 36 mystery CSV values
+    source:  Genetic KD data/r2 and r3 ISI threshold/r3/WT (56.7%); Genetic KD data/r2 and r3 ISI threshold/r3/PTEN (47.3%)
+
+  MEA_r2_dataset_0804_per_well.csv
+    matched: 40 mystery CSV values
+    source:  20241030MEA/round 2/spikes50/plate2 (54.0%); 20241030MEA/round 2/spikes50/plateD (47.8%); 20240904/plate2 (19.0%); 20240806/plate2 (19.0%); 20241030MEA/round 2/spikes150/plateD (15.7%); 20241030MEA/round 2/spikes75/plateD (15.7%); 20241030MEA/round 2/spikes20/plateD (15.7%); 20241030MEA/round 2/spikes100/plateD (15.7%); 20241030MEA/round 2/spikes150/plate2 (13.9%); 20241030MEA/round 2/spikes75/plate2 (13.9%); 20241030MEA/round 2/spikes20/plate2 (13.9%); 20241030MEA/round 2/spikes100/plate2 (13.9%); 20240904/plateD (11.9%); 20240806/plateD (11.9%)
+
+  MEA_r3_dataset_0804_per_well.csv
+    matched: 59 mystery CSV values
+    source:  20241030MEA/round 3/spikes50/plate_PTEN_correct (63.5%); 20241030MEA/round 3/network500/plate_PTEN_correct (40.6%); 20241030MEA/round 3/network500_spike50/plate_PTEN_correct (40.6%); 20241030MEA/round 3/spikes50/plate_WT (38.6%); 20241030MEA/round 3/spikes150/plate_PTEN_correct (27.2%); 20241030MEA/round 3/spikes75/plate_PTEN_correct (27.2%); 20241030MEA/round 3/spikes20/plate_PTEN_correct (27.2%); 20241030MEA/round 3/spikes100/plate_PTEN_correct (27.2%); 20241030MEA/round 3/network500/plate_WT (22.1%); 20241030MEA/round 3/network500_spike50/plate_WT (22.1%); 20241003_indu/plate_PTEN_correct (15.5%); 20241030MEA/round 3/late days network #spikes500/platePTEN_latedays_#spikes500 (13.4%); 20241030MEA/round 3/late days network #spikes500/plateWT_latedays_#spikes500 (12.1%); 20241030MEA/round 3/spikes150/plate_WT (10.3%); 20241030MEA/round 3/spikes75/plate_WT (10.3%); 20241030MEA/round 3/spikes20/plate_WT (10.3%); 20241030MEA/round 3/spikes100/plate_WT (10.3%)
+
+  MEA_r4_dataset_0804_per_well.csv
+    matched: 28 mystery CSV values
+    source:  20241030MEA/round4/PTEN KO (69.5%); 20241030MEA/round4/WT (31.3%)
+
+--- Unmatched values: 30 ---
+  PTEN KO + KCNA1_386: 19 unmatched
+    d18 col=100 val=6.68672
+    d18 col=122 val=7.20692
+    d18 col=125 val=7.51192
+    d18 col=132 val=6.58292
+    d19 col=102 val=6.86128
+    ... and 14 more
+  PTEN + sc: 5 unmatched
+    d22 col=36 val=20.49664
+    d22 col=40 val=15.82712
+    d23 col=35 val=24.10944
+    d23 col=36 val=20.82948
+    d24 col=42 val=24.98344
+  WT + KCNA1_386: 5 unmatched
+    d23 col=84 val=18.6882
+    d23 col=85 val=17.90408
+    d23 col=86 val=19.1188
+    d24 col=80 val=20.3264
+    d24 col=84 val=22.99456
+  WT + sc: 1 unmatched
+    d24 col=8 val=21.6388
+
+--- Per-group breakdown ---
+
+  [PTEN + sc] (293 non-zero values)
+    MEA_r1_dataset_0915_per_well_genoko_corrected.csv: 60 (20.5%)
+    MEA_r2_dataset_0821_per_well_genoko.csv: 132 (45.1%)
+    MEA_r3_dataset_0821_per_well_genoko.csv: 15 (5.1%)
+    R2_GENO_KD_ISIthreshold.csv: 118 (40.3%)
+    R3_GENO_KD_ISIthreshold.csv: 10 (3.4%)
+    MEA_r2_dataset_0804_per_well.csv: 8 (2.7%)
+    MEA_r3_dataset_0804_per_well.csv: 11 (3.8%)
+    MEA_r4_dataset_0804_per_well.csv: 10 (3.4%)
+
+  [PTEN KO + KCNA1_386] (247 non-zero values)
+    MEA_r1_dataset_0915_per_well_genoko_corrected.csv: 29 (11.7%)
+    MEA_r2_dataset_0821_per_well_genoko.csv: 121 (49.0%)
+    MEA_r3_dataset_0821_per_well_genoko.csv: 12 (4.9%)
+    R2_GENO_KD_ISIthreshold.csv: 95 (38.5%)
+    R3_GENO_KD_ISIthreshold.csv: 7 (2.8%)
+    MEA_r2_dataset_0804_per_well.csv: 14 (5.7%)
+    MEA_r3_dataset_0804_per_well.csv: 14 (5.7%)
+    MEA_r4_dataset_0804_per_well.csv: 7 (2.8%)
+
+  [WT + sc] (237 non-zero values)
+    MEA_r1_dataset_0915_per_well_genoko_corrected.csv: 90 (38.0%)
+    MEA_r2_dataset_0821_per_well_genoko.csv: 94 (39.7%)
+    MEA_r3_dataset_0821_per_well_genoko.csv: 9 (3.8%)
+    R2_GENO_KD_ISIthreshold.csv: 76 (32.1%)
+    R3_GENO_KD_ISIthreshold.csv: 9 (3.8%)
+    MEA_r2_dataset_0804_per_well.csv: 8 (3.4%)
+    MEA_r3_dataset_0804_per_well.csv: 17 (7.2%)
+    MEA_r4_dataset_0804_per_well.csv: 5 (2.1%)
+
+  [WT + KCNA1_386] (233 non-zero values)
+    MEA_r1_dataset_0915_per_well_genoko_corrected.csv: 84 (36.1%)
+    MEA_r2_dataset_0821_per_well_genoko.csv: 85 (36.5%)
+    MEA_r3_dataset_0821_per_well_genoko.csv: 9 (3.9%)
+    R2_GENO_KD_ISIthreshold.csv: 76 (32.6%)
+    R3_GENO_KD_ISIthreshold.csv: 10 (4.3%)
+    MEA_r2_dataset_0804_per_well.csv: 10 (4.3%)
+    MEA_r3_dataset_0804_per_well.csv: 17 (7.3%)
+    MEA_r4_dataset_0804_per_well.csv: 6 (2.6%)
