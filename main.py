@@ -132,6 +132,7 @@ def main():
             output_dir=os.path.join("visualization", args.dataset),
             show_zeros_removed=args.show_zeros_removed,
             dunn_stats=dunn_stats,
+            dataset=args.dataset,
         )
         return
 

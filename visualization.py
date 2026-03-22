@@ -18,9 +18,19 @@ VIS_SUPTITLE_FONTSIZE = 15
 VIS_TITLE_FONTSIZE = 18
 VIS_AXIS_LABEL_FONTSIZE = 15
 VIS_TICK_FONTSIZE = 13
-VIS_LEGEND_FONTSIZE = 14
-VIS_STAT_TEXT_FONTSIZE = 11
+VIS_LEGEND_FONTSIZE = 15
+VIS_STAT_TEXT_FONTSIZE = 15
 VIS_BRACKET_FONTSIZE = 12
+
+# Per-dataset, per-feature axis overrides: {"ylim": ymax, "xlim": (xmin, xmax)}
+# Only set what's strictly needed to prevent inset/curve overlap.
+FEATURE_AXIS_OVERRIDES = {
+    "genetic_ko_new": {
+        "Area Under Normalized Cross-Correlation":  {"ylim": 4.5, "xlim": (-0.1, 0.75)},
+        "Network Burst Duration - Avg (sec)":       {"xlim": (-7, 38)},
+        "Burst Duration - Avg (sec)":               {"xlim": (-0.5, 4.0)},
+    },
+}
 
 
 def _p_to_stars(p):
@@ -88,7 +98,7 @@ def _extract_raw_long(features, raw_X, raw_y, label_to_group):
 def _draw_kde_panel(ax, feat_df, title, drop_zeros=False, dunn_stats=None):
     """Draw a KDE distribution panel onto ax. Optionally removes zero values."""
     stat_lines = [
-        f"{'':>8} {'Mean':>9} {'Med':>9} {'Std':>9} {'Skew':>7}"
+        f"{'':>8} {'Mean':>7} {'Med':>7} {'Std':>7} {'Skew':>5}"
     ]
 
     group_means = {}
@@ -126,7 +136,7 @@ def _draw_kde_panel(ax, feat_df, title, drop_zeros=False, dunn_stats=None):
         sd = grp_data.std()
         sk = stats.skew(grp_data) if n >= 3 else np.nan
         stat_lines.append(
-            f"{grp:>8} {m:9.3f} {med:9.3f} {sd:9.3f} {sk:7.2f}"
+            f"{grp:>8} {m:7.2f} {med:7.2f} {sd:7.1f} {sk:5.1f}"
         )
 
     stat_text = "\n".join(stat_lines)
@@ -165,13 +175,16 @@ def _draw_kde_panel(ax, feat_df, title, drop_zeros=False, dunn_stats=None):
     ax.set_xlabel("Raw Value", fontsize=VIS_AXIS_LABEL_FONTSIZE)
     ax.set_ylabel("Density", fontsize=VIS_AXIS_LABEL_FONTSIZE)
     ax.tick_params(labelsize=VIS_TICK_FONTSIZE)
-    ax.legend(loc="upper left", fontsize=VIS_LEGEND_FONTSIZE)
+    ax.legend(
+        loc="upper right", bbox_to_anchor=(1.0, 0.7),
+        fontsize=VIS_LEGEND_FONTSIZE,
+    )
     ax.grid(axis="both", linestyle="--", alpha=0.3)
 
 
 def visualize_feature_distributions(
     features, raw_X, raw_y, output_dir=None, show_zeros_removed=False,
-    dunn_stats=None,
+    dunn_stats=None, dataset=None,
 ):
     if output_dir is not None:
         os.makedirs(output_dir, exist_ok=True)
@@ -185,14 +198,25 @@ def visualize_feature_distributions(
 
         feat_dunn = dunn_stats.get(feature) if dunn_stats else None
 
+        axis_overrides = FEATURE_AXIS_OVERRIDES.get(dataset, {}).get(feature, {})
+
+        def _apply_axis_overrides(ax):
+            if "ylim" in axis_overrides:
+                ax.set_ylim(top=axis_overrides["ylim"])
+            if "xlim" in axis_overrides:
+                ax.set_xlim(axis_overrides["xlim"])
+
         if show_zeros_removed:
             fig, (ax_left, ax_right) = plt.subplots(1, 2, figsize=(18, 5))
             fig.suptitle(feature, fontsize=VIS_SUPTITLE_FONTSIZE, fontweight="bold")
             _draw_kde_panel(ax_left, feat_df, title="All Data", dunn_stats=feat_dunn)
             _draw_kde_panel(ax_right, feat_df, title="Zeros Removed", drop_zeros=True, dunn_stats=feat_dunn)
+            _apply_axis_overrides(ax_left)
+            _apply_axis_overrides(ax_right)
         else:
             fig, ax = plt.subplots(figsize=(10, 5))
             _draw_kde_panel(ax, feat_df, title=feature, dunn_stats=feat_dunn)
+            _apply_axis_overrides(ax)
 
         plt.tight_layout()
 
