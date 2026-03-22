@@ -28,8 +28,13 @@ data_config = {
         {"round": 2, "path": "data/raw/MEA_r2_dataset_0821_per_well_genoko.csv"},
         {"round": 3, "path": "data/raw/MEA_r3_dataset_0821_per_well_genoko.csv"},
     ],
+    # Final data config used for genetic ko analysis, which matches the data config used for the paper
+    # Note that the data name used in round 3 is  incorrectly labeled as round 2. It is actually round 3.
     "genetic_ko_new": [
-        {"round": 1, "path": "data/raw/MEA_r1_dataset_0915_per_well_genoko_corrected.csv"},
+        {
+            "round": 1,
+            "path": "data/raw/MEA_r1_dataset_0915_per_well_genoko_corrected.csv",
+        },
         {"round": 2, "path": "data/raw/R2_GENO_KD_ISIthreshold.csv"},
         {"round": 3, "path": "data/raw/MEA_r2_dataset_0821_per_well_genoko.csv"},
     ],
